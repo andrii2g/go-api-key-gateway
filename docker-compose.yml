@@ -21,7 +21,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    entrypoint: ["/app/apikey-migrate", "up"]
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        until /app/apikey-migrate up; do
+          echo "migration failed, waiting for mysql..."
+          sleep 3
+        done
     environment:
       APIKEY_DB_DSN: apikey:apikey@tcp(mysql:3306)/apikey_gateway?parseTime=true
     depends_on:
