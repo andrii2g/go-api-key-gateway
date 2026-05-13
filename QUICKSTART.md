@@ -95,6 +95,30 @@ In the first shell, press `Ctrl+C`, then run:
 docker compose down -v
 ```
 
+This removes:
+
+- all containers from this Compose project
+- the Compose network
+- the named MySQL data volume
+
+If you want a more complete cleanup, including orphan containers from older revisions of the same Compose project:
+
+```sh
+docker compose down -v --remove-orphans
+```
+
+If you also want to remove the images built locally for this project:
+
+```sh
+docker compose down -v --remove-orphans --rmi local
+```
+
+If you want to remove the local development pepper file too:
+
+```sh
+rm -rf .secrets
+```
+
 ## Troubleshooting
 
 - If `docker compose` fails in WSL, verify Docker Desktop WSL integration is enabled.
