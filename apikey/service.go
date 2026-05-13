@@ -2,6 +2,7 @@ package apikey
 
 import (
 	"context"
+	"log"
 	"regexp"
 	"strings"
 	"time"
@@ -38,6 +39,7 @@ func NewService(store Store, options Options, usage UsageRecorder) (*Service, er
 }
 
 func (s *Service) Create(ctx context.Context, req CreateRequest) (CreateResult, error) {
+	log.Printf("apikey create start app=%q env=%q", req.App, req.Env)
 	app, err := NormalizeApp(req.App)
 	if err != nil {
 		return CreateResult{}, err
@@ -60,6 +62,7 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (CreateResult, 
 		if err != nil {
 			return CreateResult{}, err
 		}
+		log.Printf("apikey create checking public key collision attempt=%d public_key=%s", attempt+1, candidate)
 		exists, err := s.store.PublicKeyExists(ctx, candidate)
 		if err != nil {
 			return CreateResult{}, err
@@ -77,6 +80,7 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (CreateResult, 
 	if err != nil {
 		return CreateResult{}, err
 	}
+	log.Printf("apikey create generated secret and hash for public_key=%s", publicKey)
 	hash, err := HashSecret(secret, s.options.Pepper)
 	if err != nil {
 		return CreateResult{}, err
@@ -98,6 +102,7 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (CreateResult, 
 	if err != nil {
 		return CreateResult{}, err
 	}
+	log.Printf("apikey create stored id=%d public_key=%s", saved.ID, saved.PublicKey)
 
 	return CreateResult{
 		ID:        saved.ID,

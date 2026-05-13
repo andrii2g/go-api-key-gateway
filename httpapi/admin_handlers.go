@@ -1,8 +1,10 @@
 package httpapi
 
 import (
+	"context"
 	"crypto/subtle"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -18,6 +20,7 @@ type AdminHandlers struct {
 }
 
 func (h AdminHandlers) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
+	log.Printf("admin create request started remote_addr=%s", r.RemoteAddr)
 	if !validAdminToken(r.Header.Get("X-Admin-Token"), h.AdminToken) {
 		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 		return
@@ -31,10 +34,14 @@ func (h AdminHandlers) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 		ExpiresAt *time.Time `json:"expires_at"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("admin create decode failed: %v", err)
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
-	result, err := h.Service.Create(r.Context(), apikey.CreateRequest{
+	log.Printf("admin create decoded app=%q env=%q scopes=%d", req.App, req.Env, len(req.Scopes))
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+	result, err := h.Service.Create(ctx, apikey.CreateRequest{
 		App:       req.App,
 		Env:       req.Env,
 		Name:      req.Name,
@@ -43,9 +50,11 @@ func (h AdminHandlers) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 		ExpiresAt: req.ExpiresAt,
 	})
 	if err != nil {
+		log.Printf("admin create failed: %v", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	log.Printf("admin create success id=%d public_key=%s", result.ID, result.PublicKey)
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(result)
 }
@@ -68,7 +77,10 @@ func (h AdminHandlers) RevokeAPIKey(w http.ResponseWriter, r *http.Request) {
 	if h.Now != nil {
 		now = h.Now().UTC()
 	}
-	if err := h.Service.Revoke(r.Context(), id, now); err != nil {
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+	if err := h.Service.Revoke(ctx, id, now); err != nil {
+		log.Printf("admin revoke failed: %v", err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}

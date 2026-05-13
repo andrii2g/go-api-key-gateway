@@ -2,7 +2,6 @@ module github.com/andrii2g/go-api-key-gateway
 
 go 1.26
 
-require (
-	github.com/go-sql-driver/mysql v1.9.3
-	github.com/stretchr/testify v1.10.0
-)
+require github.com/go-sql-driver/mysql v1.9.3
+
+require filippo.io/edwards25519 v1.1.0 // indirect

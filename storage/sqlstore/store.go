@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log"
 	"time"
 
 	"github.com/andrii2g/go-api-key-gateway/apikey"
@@ -22,6 +23,7 @@ func NewStore(db *sql.DB) *Store {
 }
 
 func (s *Store) Create(ctx context.Context, record apikey.ApiKeyRecord) (apikey.ApiKeyRecord, error) {
+	log.Printf("sqlstore create start public_key=%s", record.PublicKey)
 	params, err := RecordToInsertParams(record)
 	if err != nil {
 		return apikey.ApiKeyRecord{}, err
@@ -40,10 +42,12 @@ func (s *Store) Create(ctx context.Context, record apikey.ApiKeyRecord) (apikey.
 	if err != nil {
 		return apikey.ApiKeyRecord{}, err
 	}
+	log.Printf("sqlstore create insert complete public_key=%s", record.PublicKey)
 	id, err := result.LastInsertId()
 	if err != nil {
 		return apikey.ApiKeyRecord{}, err
 	}
+	log.Printf("sqlstore create last insert id=%d", id)
 	return s.findByID(ctx, id)
 }
 
@@ -63,10 +67,12 @@ func (s *Store) FindByPublicKey(ctx context.Context, publicKey string) (*apikey.
 }
 
 func (s *Store) PublicKeyExists(ctx context.Context, publicKey string) (bool, error) {
+	log.Printf("sqlstore public key exists check public_key=%s", publicKey)
 	var exists bool
 	if err := s.db.QueryRowContext(ctx, s.statements.PublicKeyExists, publicKey).Scan(&exists); err != nil {
 		return false, err
 	}
+	log.Printf("sqlstore public key exists result public_key=%s exists=%v", publicKey, exists)
 	return exists, nil
 }
 
@@ -81,6 +87,7 @@ func (s *Store) Revoke(ctx context.Context, id int64, at time.Time) error {
 }
 
 func (s *Store) findByID(ctx context.Context, id int64) (apikey.ApiKeyRecord, error) {
+	log.Printf("sqlstore find by id id=%d", id)
 	row, err := s.scanOne(ctx, s.statements.FindByID, id)
 	if err != nil {
 		return apikey.ApiKeyRecord{}, err

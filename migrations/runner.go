@@ -47,13 +47,16 @@ func (r *Runner) Up(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+		statements := splitSQLStatements(string(content))
 		tx, err := r.db.BeginTx(ctx, nil)
 		if err != nil {
 			return err
 		}
-		if _, err := tx.ExecContext(ctx, string(content)); err != nil {
-			_ = tx.Rollback()
-			return fmt.Errorf("apply %s: %w", file, err)
+		for _, stmt := range statements {
+			if _, err := tx.ExecContext(ctx, stmt); err != nil {
+				_ = tx.Rollback()
+				return fmt.Errorf("apply %s: %w", file, err)
+			}
 		}
 		if _, err := tx.ExecContext(ctx, `INSERT INTO schema_migrations (version) VALUES (?)`, file); err != nil {
 			_ = tx.Rollback()
@@ -115,4 +118,17 @@ func (r *Runner) upFiles() ([]string, error) {
 	}
 	sort.Strings(files)
 	return files, nil
+}
+
+func splitSQLStatements(content string) []string {
+	parts := strings.Split(content, ";")
+	statements := make([]string, 0, len(parts))
+	for _, part := range parts {
+		stmt := strings.TrimSpace(part)
+		if stmt == "" {
+			continue
+		}
+		statements = append(statements, stmt)
+	}
+	return statements
 }
