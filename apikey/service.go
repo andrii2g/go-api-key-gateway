@@ -178,6 +178,10 @@ func (s *Service) Validate(ctx context.Context, req ValidationRequest) Validatio
 	}
 }
 
+func (s *Service) Revoke(ctx context.Context, id int64, at time.Time) error {
+	return s.store.Revoke(ctx, id, at.UTC())
+}
+
 var (
 	appPattern = regexp.MustCompile(`^[a-z0-9]{1,3}$`)
 	envPattern = regexp.MustCompile(`^[a-z0-9-]{1,10}$`)
