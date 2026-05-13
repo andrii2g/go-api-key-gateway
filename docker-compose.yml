@@ -1,0 +1,59 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: go-api-key-gateway-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: apikey_gateway
+      MYSQL_USER: apikey
+      MYSQL_PASSWORD: apikey
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "apikey", "--password=apikey"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: ["/app/apikey-migrate", "up"]
+    environment:
+      APIKEY_DB_DSN: apikey:apikey@tcp(mysql:3306)/apikey_gateway?parseTime=true
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  sample-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      APIKEY_ENV: local
+      APIKEY_DB_DSN: apikey:apikey@tcp(mysql:3306)/apikey_gateway?parseTime=true
+      APIKEY_PEPPER_FILE: /run/secrets/api_key_pepper
+      APIKEY_SECRET_BYTES: 32
+      APIKEY_ADMIN_TOKEN: local-admin-token
+      APIKEY_HTTP_ADDR: :8080
+      APIKEY_USAGE_QUEUE_SIZE: 1024
+      APIKEY_USAGE_FLUSH_TIMEOUT_MS: 250
+    secrets:
+      - api_key_pepper
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+secrets:
+  api_key_pepper:
+    file: ./.secrets/api_key_pepper
+
+volumes:
+  mysql-data:
