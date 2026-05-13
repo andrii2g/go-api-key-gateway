@@ -38,14 +38,15 @@ func randomAlphabetIndex(size int) (int, error) {
 		return 0, ErrInvalidSecretBytes
 	}
 
-	max := byte(256 - (256 % size))
+	max := 256 - (256 % size)
 	var b [1]byte
 	for {
 		if _, err := rand.Read(b[:]); err != nil {
 			return 0, err
 		}
-		if b[0] < max {
-			return int(b[0]) % size, nil
+		value := int(b[0])
+		if value < max {
+			return value % size, nil
 		}
 	}
 }
