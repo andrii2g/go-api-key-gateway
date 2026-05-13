@@ -44,20 +44,25 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (CreateResult, 
 	if err != nil {
 		return CreateResult{}, err
 	}
+	log.Printf("apikey create normalized app=%q", app)
 	env, err := NormalizeEnv(req.Env)
 	if err != nil {
 		return CreateResult{}, err
 	}
+	log.Printf("apikey create normalized env=%q", env)
 	scopes, err := NormalizeScopes(req.Scopes)
 	if err != nil {
 		return CreateResult{}, err
 	}
+	log.Printf("apikey create normalized scopes=%v", scopes)
 	if req.ExpiresAt != nil && !req.ExpiresAt.After(s.now().UTC()) {
 		return CreateResult{}, ErrInvalidEnv
 	}
+	log.Printf("apikey create expires_at validated")
 
 	var publicKey string
 	for attempt := 0; attempt < 10; attempt++ {
+		log.Printf("apikey create generating public key attempt=%d", attempt+1)
 		candidate, err := GeneratePublicKey()
 		if err != nil {
 			return CreateResult{}, err
