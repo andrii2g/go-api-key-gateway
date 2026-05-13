@@ -4,3 +4,5 @@ bin/
 dist/
 coverage.out
 TestResults/
+httpapi.test.exe
+apikey.test.exe
